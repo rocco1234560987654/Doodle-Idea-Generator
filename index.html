@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Doodle Idea Generator</title>
+  <title>Doodle Idea Generator (Dark Mode)</title>
   <style>
     :root {
       font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
-      color: #111;
+      color: #f0f0f0;
+      background-color: #0e0e0e;
     }
 
     body {
@@ -16,25 +17,32 @@
       justify-content: center;
       min-height: 100vh;
       padding: 24px;
-      background: #f7fafc;
+      background: #0e0e0e;
     }
 
     .card {
       width: 760px;
       max-width: 100%;
-      background: #fff;
+      background: #1a1a1a;
       border-radius: 12px;
-      box-shadow: 0 8px 30px rgba(12,13,14,0.08);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
       padding: 20px;
       transition: box-shadow .2s ease;
     }
 
     .card:hover {
-      box-shadow: 0 12px 36px rgba(0,0,0,0.1);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8);
     }
 
-    h1 { margin: 0 0 8px; font-size: 20px }
-    p.lead { margin: 0 0 16px; color: #555 }
+    h1 { 
+      margin: 0 0 8px; 
+      font-size: 20px; 
+      color: #fff;
+    }
+    p.lead { 
+      margin: 0 0 16px; 
+      color: #ccc; 
+    }
 
     .controls {
       display: flex;
@@ -43,19 +51,17 @@
       margin-bottom: 12px;
     }
 
-    input[type=number] {
-      width: 84px;
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid #e6e9ef;
-    }
-
-    select, button {
+    input[type=number], select, button {
       padding: 8px 12px;
       border-radius: 8px;
-      border: 1px solid #e6e9ef;
-      background: #fff;
-      cursor: pointer;
+      border: 1px solid #333;
+      background: #2a2a2a;
+      color: #f0f0f0;
+    }
+
+    input[type=number]:focus, select:focus, button:focus {
+      outline: 2px solid #0b76ef;
+      outline-offset: 2px;
     }
 
     button.primary {
@@ -65,7 +71,11 @@
     }
 
     button.primary:hover {
-      background: #0a66d6; /* tiny hover tweak */
+      background: #0a66d6;
+    }
+
+    button:hover {
+      background: #333;
     }
 
     .output {
@@ -76,7 +86,8 @@
     }
 
     .chip {
-      background: #f1f5f9;
+      background: #2a2a2a;
+      color: #fafafa;
       padding: 10px;
       border-radius: 8px;
       min-height: 44px;
@@ -91,11 +102,14 @@
       margin-top: 12px;
     }
 
-    .small { font-size: 13px; color: #666 }
+    .small { 
+      font-size: 13px; 
+      color: #aaa; 
+    }
 
     footer {
       margin-top: 14px;
-      color: #888;
+      color: #777;
       font-size: 13px;
     }
 
@@ -103,8 +117,6 @@
       .controls { flex-direction: column }
       .actions { flex-direction: column }
     }
-
-    /* TODO: maybe try Nunito font later? */
   </style>
 </head>
 
@@ -143,7 +155,6 @@
   </div>
 
 <script>
-// kinda messy but works fine for now :)
 const adjectives = [
   "ancient","angry","anxious","brave","bouncy","brilliant","brittle","calm","cheeky","clever",
   "curious","daring","dreamy","eerie","elegant","fierce","gentle","glitchy","grumpy","hazy",
@@ -175,18 +186,12 @@ const toneFilters = {
   epic: { adj: [/mighty|heroic|ancient|brave/], noun: [/dragon|astronaut|castle|ship/], verb: [/sailing|climbing|wrestling/] }
 };
 
-// simple random picker (lazy version)
-function pick(arr){
-  return arr[Math.floor(Math.random() * arr.length)]
-}
+function pick(arr){ return arr[Math.floor(Math.random() * arr.length)] }
 
-// builds a single prompt, tone optional
 function makePrompt(tone = "random"){
   let adj = pick(adjectives)
   let noun = pick(nouns)
   let verb = pick(verbs)
-
-  // tone filter (rough 1/3 chance)
   if(tone !== 'random' && Math.random() < 0.35){
     const filt = toneFilters[tone]
     if (filt?.adj) {
@@ -202,12 +207,10 @@ function makePrompt(tone = "random"){
       if (opts.length) verb = pick(opts)
     }
   }
-
   if(adj.toLowerCase() === noun.toLowerCase()) noun = pick(nouns)
   return `${adj} ${noun} ${verb}`
 }
 
-// --- UI logic ---
 const outputContainer = document.getElementById('outputContainer')
 const generateButton = document.getElementById('generateButton')
 const numInput = document.getElementById('numInput')
@@ -220,11 +223,10 @@ function updatePrompts(){
   const count = Math.max(1, Math.min(50, parseInt(numInput.value || '6')))
   const tone = toneSelect.value
   const prompts = []
-
   for(let i = 0; i < count; i++){
     const prompt = makePrompt(tone)
     prompts.push(prompt)
-    outputContainer.innerHTML += `<div class="chip">${prompt}</div>` // lazy DOM append
+    outputContainer.innerHTML += `<div class="chip">${prompt}</div>`
   }
   return prompts
 }
@@ -236,24 +238,4 @@ copyButton.addEventListener('click', async () => {
   await navigator.clipboard.writeText(text)
   copyButton.textContent = 'Copied!'
   setTimeout(() => copyButton.textContent = 'Copy All', 1200)
-})
 
-saveButton.addEventListener('click', () => {
-  const text = Array.from(document.querySelectorAll('.chip')).map(c => c.textContent).join('\n')
-  const blob = new Blob([text], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'doodle_prompts.txt'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
-})
-
-// run once when loaded
-window.addEventListener('DOMContentLoaded', () => updatePrompts())
-
-</script>
-</body>
-</html>
