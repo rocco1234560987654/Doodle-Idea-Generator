@@ -34,15 +34,8 @@
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8);
     }
 
-    h1 { 
-      margin: 0 0 8px; 
-      font-size: 20px; 
-      color: #fff;
-    }
-    p.lead { 
-      margin: 0 0 16px; 
-      color: #ccc; 
-    }
+    h1 { margin: 0 0 8px; font-size: 20px; color: #fff; }
+    p.lead { margin: 0 0 16px; color: #ccc; }
 
     .controls {
       display: flex;
@@ -70,13 +63,8 @@
       border: none;
     }
 
-    button.primary:hover {
-      background: #0a66d6;
-    }
-
-    button:hover {
-      background: #333;
-    }
+    button.primary:hover { background: #0a66d6; }
+    button:hover:not(.primary) { background: #333; }
 
     .output {
       margin-top: 12px;
@@ -102,20 +90,12 @@
       margin-top: 12px;
     }
 
-    .small { 
-      font-size: 13px; 
-      color: #aaa; 
-    }
-
-    footer {
-      margin-top: 14px;
-      color: #777;
-      font-size: 13px;
-    }
+    .small { font-size: 13px; color: #aaa; }
+    footer { margin-top: 14px; color: #777; font-size: 13px; }
 
     @media (max-width:520px) {
-      .controls { flex-direction: column }
-      .actions { flex-direction: column }
+      .controls { flex-direction: column; }
+      .actions { flex-direction: column; }
     }
   </style>
 </head>
@@ -126,7 +106,7 @@
     <p class="lead">Random ideas for pencil sketches. Draw freely with an open mind for a few minutes, then return to studying — don't try to perfect it. Short creative breaks can improve productivity.</p>
 
     <div class="controls">
-      <label class="small">Number of prompts: 
+      <label class="small">Number of prompts:
         <input id="numInput" type="number" min="1" max="50" value="6">
       </label>
 
@@ -155,6 +135,8 @@
   </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+
 const adjectives = [
   "ancient","angry","anxious","brave","bouncy","brilliant","brittle","calm","cheeky","clever",
   "curious","daring","dreamy","eerie","elegant","fierce","gentle","glitchy","grumpy","hazy",
@@ -222,20 +204,38 @@ function updatePrompts(){
   outputContainer.innerHTML = ''
   const count = Math.max(1, Math.min(50, parseInt(numInput.value || '6')))
   const tone = toneSelect.value
-  const prompts = []
   for(let i = 0; i < count; i++){
     const prompt = makePrompt(tone)
-    prompts.push(prompt)
-    outputContainer.innerHTML += `<div class="chip">${prompt}</div>`
+    const div = document.createElement('div')
+    div.className = 'chip'
+    div.textContent = prompt
+    outputContainer.appendChild(div)
   }
-  return prompts
 }
 
-generateButton.addEventListener('click', () => updatePrompts())
+generateButton.addEventListener('click', updatePrompts)
 
 copyButton.addEventListener('click', async () => {
   const text = Array.from(document.querySelectorAll('.chip')).map(c => c.textContent).join('\n')
   await navigator.clipboard.writeText(text)
   copyButton.textContent = 'Copied!'
   setTimeout(() => copyButton.textContent = 'Copy All', 1200)
+})
+
+saveButton.addEventListener('click', () => {
+  const text = Array.from(document.querySelectorAll('.chip')).map(c => c.textContent).join('\n')
+  const blob = new Blob([text], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'doodle_prompts.txt'
+  a.click()
+  URL.revokeObjectURL(url)
+})
+
+updatePrompts() // show initial prompts on load
+})
+</script>
+</body>
+</html>
 
