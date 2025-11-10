@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Doodle Idea Generator</title>
+  <style>
+    :root {
+      font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      color: #111;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      background: #f7fafc;
+    }
+
+    .card {
+      width: 760px;
+      max-width: 100%;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(12,13,14,0.08);
+      padding: 20px;
+      transition: box-shadow .2s ease;
+    }
+
+    .card:hover {
+      box-shadow: 0 12px 36px rgba(0,0,0,0.1);
+    }
+
+    h1 { margin: 0 0 8px; font-size: 20px }
+    p.lead { margin: 0 0 16px; color: #555 }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    input[type=number] {
+      width: 84px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #e6e9ef;
+    }
+
+    select, button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #e6e9ef;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: #0b76ef;
+      color: #fff;
+      border: none;
+    }
+
+    button.primary:hover {
+      background: #0a66d6; /* tiny hover tweak */
+    }
+
+    .output {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 8px;
+    }
+
+    .chip {
+      background: #f1f5f9;
+      padding: 10px;
+      border-radius: 8px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+
+    .small { font-size: 13px; color: #666 }
+
+    footer {
+      margin-top: 14px;
+      color: #888;
+      font-size: 13px;
+    }
+
+    @media (max-width:520px) {
+      .controls { flex-direction: column }
+      .actions { flex-direction: column }
+    }
+
+    /* TODO: maybe try Nunito font later? */
+  </style>
+</head>
+
+<body>
+  <div class="card" role="main">
+    <h1>Doodle Prompt Generator</h1>
+    <p class="lead">Random ideas for pencil sketches. Draw freely with an open mind for a few minutes, then return to studying — don't try to perfect it. Short creative breaks can improve productivity.</p>
+
+    <div class="controls">
+      <label class="small">Number of prompts: 
+        <input id="numInput" type="number" min="1" max="50" value="6">
+      </label>
+
+      <label class="small">Tone:
+        <select id="toneSelect">
+          <option value="quirky">Quirky</option>
+          <option value="cute">Cute</option>
+          <option value="weird">Weird</option>
+          <option value="epic">Epic</option>
+          <option value="random" selected>Random</option>
+        </select>
+      </label>
+
+      <button id="generateButton" class="primary">Generate</button>
+      <button id="copyButton">Copy All</button>
+      <button id="saveButton">Download .txt</button>
+    </div>
+
+    <div id="outputContainer" class="output" aria-live="polite"></div>
+
+    <div class="actions">
+      <div class="small">Tip: These prompts are only to give you an idea of what to draw without using mental energy on thinking, feel free to interpret the prompts however you would like.</div>
+    </div>
+
+    <footer>Happy studies to all my fellow students☕ — 2025</footer>
+  </div>
+
+<script>
+// kinda messy but works fine for now :)
+const adjectives = [
+  "ancient","angry","anxious","brave","bouncy","brilliant","brittle","calm","cheeky","clever",
+  "curious","daring","dreamy","eerie","elegant","fierce","gentle","glitchy","grumpy","hazy",
+  "heroic","humble","icy","jittery","lively","lonely","mighty","mystic","noisy","playful",
+  "plucky","quirky","rusty","savage","shy","sleek","soggy","somber","sudden","tactile",
+  "tiny","vivid","vulnerable","wild","wispy","wobbly","zealous","zen"
+];
+
+const nouns = [
+  "monster","robot","astronaut","fox","library","castle","engine","ship","island","mountain",
+  "telescope","clock","street","piano","bridge","ghost","dragon","forest","owl","camera",
+  "stranger","kite","inventor","cat","dog","treehouse","pirate","sailor","gardener",
+  "map","factory","lantern","beast","musician","painter","chef","dancer","scientist","magician",
+  "train","planet","cave","market","shipwreck","atlas","harbor","observer","companion","artifact"
+];
+
+const verbs = [
+  "surfing","dancing","sleeping","painting","floating","scribbling","climbing","balancing","chasing",
+  "exploring","singing","whistling","flying","murmuring","repairing","mending","growing","melting",
+  "spinning","sketching","tumbling","racing","hiding","waving","wandering","gardening","cooking",
+  "inventing","listening","dreaming","mapping","wrestling","sailing","gliding","observing","building",
+  "juggling","strumming","floating","sprinting","pondering","stitching","polishing","orbiting"
+];
+
+const toneFilters = {
+  quirky: { adj: [/quirky|glitchy|wobbly|bouncy|cheeky/], noun: [/monster|inventor|ghost|artifact/], verb: [/scribbling|juggling|sketching/] },
+  cute: { adj: [/tiny|playful|gentle|shy/], noun: [/cat|dog|owl|companion/], verb: [/sleeping|dreaming/] },
+  weird: { adj: [/eerie|glitchy|mystic|hazy/], noun: [/ghost|artifact|beast|stranger/], verb: [/melting|floating|murmuring/] },
+  epic: { adj: [/mighty|heroic|ancient|brave/], noun: [/dragon|astronaut|castle|ship/], verb: [/sailing|climbing|wrestling/] }
+};
+
+// simple random picker (lazy version)
+function pick(arr){
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+// builds a single prompt, tone optional
+function makePrompt(tone = "random"){
+  let adj = pick(adjectives)
+  let noun = pick(nouns)
+  let verb = pick(verbs)
+
+  // tone filter (rough 1/3 chance)
+  if(tone !== 'random' && Math.random() < 0.35){
+    const filt = toneFilters[tone]
+    if (filt?.adj) {
+      const opts = adjectives.filter(a => filt.adj.some(re => re.test(a)))
+      if (opts.length) adj = pick(opts)
+    }
+    if (filt?.noun) {
+      const opts = nouns.filter(n => filt.noun.some(re => re.test(n)))
+      if (opts.length) noun = pick(opts)
+    }
+    if (filt?.verb) {
+      const opts = verbs.filter(v => filt.verb.some(re => re.test(v)))
+      if (opts.length) verb = pick(opts)
+    }
+  }
+
+  if(adj.toLowerCase() === noun.toLowerCase()) noun = pick(nouns)
+  return `${adj} ${noun} ${verb}`
+}
+
+// --- UI logic ---
+const outputContainer = document.getElementById('outputContainer')
+const generateButton = document.getElementById('generateButton')
+const numInput = document.getElementById('numInput')
+const toneSelect = document.getElementById('toneSelect')
+const copyButton = document.getElementById('copyButton')
+const saveButton = document.getElementById('saveButton')
+
+function updatePrompts(){
+  outputContainer.innerHTML = ''
+  const count = Math.max(1, Math.min(50, parseInt(numInput.value || '6')))
+  const tone = toneSelect.value
+  const prompts = []
+
+  for(let i = 0; i < count; i++){
+    const prompt = makePrompt(tone)
+    prompts.push(prompt)
+    outputContainer.innerHTML += `<div class="chip">${prompt}</div>` // lazy DOM append
+  }
+  return prompts
+}
+
+generateButton.addEventListener('click', () => updatePrompts())
+
+copyButton.addEventListener('click', async () => {
+  const text = Array.from(document.querySelectorAll('.chip')).map(c => c.textContent).join('\n')
+  await navigator.clipboard.writeText(text)
+  copyButton.textContent = 'Copied!'
+  setTimeout(() => copyButton.textContent = 'Copy All', 1200)
+})
+
+saveButton.addEventListener('click', () => {
+  const text = Array.from(document.querySelectorAll('.chip')).map(c => c.textContent).join('\n')
+  const blob = new Blob([text], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'doodle_prompts.txt'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+})
+
+// run once when loaded
+window.addEventListener('DOMContentLoaded', () => updatePrompts())
+
+</script>
+</body>
+</html>
